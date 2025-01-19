@@ -8,13 +8,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            steps {
-                echo 'Overload in branch master.'
-                bat "dir"
-            }
-        }
-
         stage('Tests') {
             parallel {	
                 stage('Unit') {
@@ -66,12 +59,6 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
-
-        stage('Results') {
-            steps {
-                junit 'result*.xml'
             }
         }
     }
