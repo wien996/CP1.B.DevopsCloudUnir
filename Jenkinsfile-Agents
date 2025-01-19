@@ -1,0 +1,115 @@
+pipeline {
+    agent none
+
+    stages {
+        stage('GetCode') {
+            agent { label 'MainNode' }
+            steps {
+                bat '''
+                echo [Built-In Node AS MainNode - Stage: GetCode]
+                whoami
+                hostname
+                echo %WORKSPACE%
+                git config --global --add safe.directory %WORKSPACE%
+                '''
+                git 'https://github.com/wien996/CP1.A.DevopsCloudUnir.git'
+
+                // Stash files after cloning
+                stash includes: '**', name: 'project-files'
+            }
+        }
+
+        stage('Build') {
+            agent { label 'MainNode' }
+            steps {
+                unstash 'project-files'
+                bat '''
+                echo [Built-In Node AS MainNode - Stage: Build]
+                whoami
+                hostname
+                dir
+                echo %WORKSPACE%
+                '''
+            }
+            post {
+                always {
+                    cleanWs()
+                }
+            }
+        }
+
+        stage('Tests') {
+            parallel {
+                stage('Unit') {
+                    agent { label 'AgentUnit_Label' }
+                    environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11A-Reto2-AgentUnit"
+                    }
+                    steps {
+                        unstash 'project-files'
+                        bat '''
+                        echo [AgentUnit]
+                        whoami
+                        hostname
+                        echo %WORKSPACE%
+                        '''
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            bat 'python -m pytest --junitxml=result-unit.xml test\\unit'
+                        }
+                    }
+                    post {
+                        always {
+							stash includes: 'result-unit.xml', name: 'rest-results'
+                            cleanWs()
+                        }
+                    }
+                }
+							
+				stage('Rest') {
+					agent { label 'AgentRest_Label' }
+					environment {
+						PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11A-Reto2-AgentRest"
+					}
+					steps {
+						unstash 'project-files'
+						bat '''
+						echo [AgentRest]
+						whoami
+						hostname
+						'''
+						catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+							bat '''
+							set FLASK_APP=app\\api.py
+							start /b flask run
+							python -m pytest --junitxml=result-rest.xml test\\rest
+							'''
+						}
+					}
+					post {
+						always {
+							bat '''
+							taskkill /F /IM flask.exe >nul 2>&1 || echo Flask server not running
+							'''
+							stash includes: 'result-rest.xml', name: 'rest-results'
+							cleanWs()
+						}
+					}
+				}
+            }
+        }
+		
+		stage('Results') {
+			agent { label 'MainNode' }
+			steps {
+				unstash 'rest-results'  // Recupera el archivo stashed
+				junit 'result-rest.xml' // Procesa el archivo con JUnit
+				junit 'result-rest.xml'
+			}
+			post {
+				always {
+					cleanWs()
+				}
+			}
+		}
+    }
+}

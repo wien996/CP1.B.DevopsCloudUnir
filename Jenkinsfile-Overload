@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('GetCode') {
+            steps {
+                git 'https://github.com/wien996/CP1.A.DevopsCloudUnir.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Overload in branch master.'
+                bat "dir"
+            }
+        }
+
+        stage('Tests') {
+            parallel {	
+                stage('Unit') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            bat '''
+                                SET PYTHONPATH=%WORKSPACE%
+                                C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\pytest --junitxml=result-unit.xml test\\unit
+                            '''
+                        }
+                    }
+                }
+                
+                stage('Rest') {
+                    steps {
+                        script {
+                            echo 'Launches multiple instances of parallel processes to simulate overloading.'
+                            def restStages = [:]
+                            echo 'Simulates overload by creating 10 parallel REST test instances.'
+                            for (int i = 0; i < 10; i++) {
+                                def index = i
+                                restStages["RestTest${index}"] = {
+                                    bat """
+                                        start /B java -jar C:\\Tools\\wiremock-standalone-3.10.0.jar --port ${9090 + index}
+                                    """
+                                    bat """
+                                        set FLASK_APP=app\\api.py
+                                        SET PYTHONPATH=%WORKSPACE%
+                                        start /B C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\flask run --port=${5000 + index}
+                                        C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\pytest --junitxml=result-rest-${index}.xml test\\rest
+                                    """
+                                }
+                            }
+                            parallel restStages
+                        }
+                    }
+                }
+
+                stage('OverloadSimulation') {
+                    steps {
+                        script {
+                            echo 'Simulating overload by means of intensive loops'
+                            bat '''
+                                for /L %%x in (1, 1, 100000) do @(
+                                    echo Cargando CPU - Iteración %%x
+                                    > nul
+                                )
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Results') {
+            steps {
+                junit 'result*.xml'
+            }
+        }
+    }
+}
