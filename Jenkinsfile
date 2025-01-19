@@ -8,13 +8,6 @@ pipeline {
             }
         }
         
-        stage('Build') {
-            steps {
-                echo 'Esto es la primera prueba de un stage.'
-                bat "dir"
-            }
-        }
-        
 		stage('Tests') {
 			parallel {	
 				stage('Unit') {
@@ -48,11 +41,5 @@ pipeline {
 				}
 			}
 		}
-		
-        stage('Results') {
-            steps {
-                junit 'result*.xml'
-            }
-        }
     }
 }
