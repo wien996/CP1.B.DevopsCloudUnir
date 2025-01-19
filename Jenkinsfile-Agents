@@ -19,25 +19,6 @@ pipeline {
             }
         }
 
-        stage('Build') {
-            agent { label 'MainNode' }
-            steps {
-                unstash 'project-files'
-                bat '''
-                echo [Built-In Node AS MainNode - Stage: Build]
-                whoami
-                hostname
-                dir
-                echo %WORKSPACE%
-                '''
-            }
-            post {
-                always {
-                    cleanWs()
-                }
-            }
-        }
-
         stage('Tests') {
             parallel {
                 stage('Unit') {
@@ -97,19 +78,5 @@ pipeline {
 				}
             }
         }
-		
-		stage('Results') {
-			agent { label 'MainNode' }
-			steps {
-				unstash 'rest-results'  // Recupera el archivo stashed
-				junit 'result-rest.xml' // Procesa el archivo con JUnit
-				junit 'result-rest.xml'
-			}
-			post {
-				always {
-					cleanWs()
-				}
-			}
-		}
     }
 }
