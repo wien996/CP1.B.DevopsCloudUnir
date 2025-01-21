@@ -4,6 +4,8 @@ import app
 class InvalidPermissions(Exception):
     pass
 class Calculator:
+
+    
     def add(self, x, y):
         self.check_types(x, y)
         return x + y
