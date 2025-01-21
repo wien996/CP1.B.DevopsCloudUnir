@@ -15,6 +15,7 @@ def hello():
     return "Hello from The Calculator!\n"
 
 @api_application.route("/calc/add/<op_1>/<op_2>", methods=["GET"])
+
 def add(op_1, op_2):
     try:
         num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
@@ -23,6 +24,7 @@ def add(op_1, op_2):
         return (str(e), http.client.BAD_REQUEST, HEADERS)
 
 @api_application.route("/calc/substract/<op_1>/<op_2>", methods=["GET"])
+
 def substract(op_1, op_2):
     try:
         num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
@@ -31,6 +33,7 @@ def substract(op_1, op_2):
         return (str(e), http.client.BAD_REQUEST, HEADERS)
 
 @api_application.route("/calc/multiply/<op_1>/<op_2>", methods=["GET"])
+
 def multiply(op_1, op_2):
     try:
         num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
@@ -39,6 +42,7 @@ def multiply(op_1, op_2):
         return (str(e), http.client.BAD_REQUEST, HEADERS)
         
 @api_application.route("/calc/divide/<op_1>/<op_2>", methods=["GET"])
+
 def divide(op_1, op_2):
     try:
         num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
