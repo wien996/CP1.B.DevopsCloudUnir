@@ -1,36 +1,53 @@
-import app
+import http.client
 
-class InvalidPermissions(Exception):
-    pass
-class Calculator:
+from flask import Flask
 
-    def add(self, x, y):  
-        self.check_types(x, y)
-        return x + y
-        
-    def substract(self, x, y):
-        self.check_types(x, y)
-        return x - y
-        
-    def multiply(self, x, y):
-        self.check_types(x, y)
-        return x * y
-        
-    def divide(self, x, y):
-        self.check_types(x, y)
-        if y == 0:
-            raise TypeError("Division by zero is not possible")
-        return x / y
-        
-    def power(self, x, y):
-        self.check_types(x, y)
-        return x ** y
-        
-    def check_types(self, x, y): 
-        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
-            raise TypeError("Parameters must be numbers")
-            
-if __name__ == "__main__":  # pragma: no cover
-    calc = Calculator()
-    result = calc.add(2, 2)
-    print(result)
+from app import util
+from app.calc import Calculator
+
+CALCULATOR = Calculator()
+api_application = Flask(__name__)
+HEADERS = {"Content-Type": "text/plain", "Access-Control-Allow-Origin": "*"}
+
+
+@api_application.route("/")
+def hello():
+    return "Hello from The Calculator!\n"
+
+
+@api_application.route("/calc/add/<op_1>/<op_2>", methods=["GET"])
+def add(op_1, op_2):
+    try:
+        num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
+        return ("{}".format(CALCULATOR.add(num_1, num_2)), http.client.OK, HEADERS)
+    except TypeError as e:
+        return (str(e), http.client.BAD_REQUEST, HEADERS)
+
+
+@api_application.route("/calc/substract/<op_1>/<op_2>", methods=["GET"])
+def substract(op_1, op_2):
+    try:
+        num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
+        return ("{}".format(CALCULATOR.substract(num_1, num_2)), http.client.OK, HEADERS)
+    except TypeError as e:
+        return (str(e), http.client.BAD_REQUEST, HEADERS)
+
+
+@api_application.route("/calc/multiply/<op_1>/<op_2>", methods=["GET"])
+def multiply(op_1, op_2):
+    try:
+        num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
+        return ("{}".format(CALCULATOR.multiply(num_1, num_2)), http.client.OK, HEADERS)
+    except TypeError as e:
+        return (str(e), http.client.BAD_REQUEST, HEADERS)
+
+
+@api_application.route("/calc/divide/<op_1>/<op_2>", methods=["GET"])
+def divide(op_1, op_2):
+    try:
+        num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
+        if num_2 == 0:
+            return ("Divisor cannot be zero", http.client.NOT_ACCEPTABLE, HEADERS)
+        return ("{}".format(CALCULATOR.divide(num_1, num_2)), http.client.OK, HEADERS)
+    except TypeError as e:
+        return (str(e), http.client.BAD_REQUEST, HEADERS)
