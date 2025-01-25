@@ -144,7 +144,7 @@ pipeline {
     }
     post {
     	always {
-        	node ('any') {
+        	node ('none') {
             	cleanWs()
         	}
     	}
