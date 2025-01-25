@@ -1,0 +1,150 @@
+pipeline {
+    agent none
+    options {
+        timestamps()
+    }
+    stages {
+        stage('GetCode') {
+            agent { label 'checkout' }
+            steps {
+				bat '''
+					echo [Stage: GetCode]
+					whoami
+					hostname
+					echo %WORKSPACE%
+					git config --global --add safe.directory %WORKSPACE%
+				'''	
+				git 'https://github.com/wien996/CP1.B.DevopsCloudUnir.git'
+				// Stash files after cloning
+                stash includes: '**', name: 'project-files'
+            }
+        }
+        
+        stage('Testing') {
+            parallel {
+                stage('Unit') {
+                    agent { label 'unit-test' }
+					environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11B-Reto2-AgentUnitTest"
+                    }
+                    steps {
+						unstash 'project-files'
+						bat '''
+							echo [AgentUnitTest]
+							whoami
+							hostname
+							echo %WORKSPACE%
+						'''					
+                        catchError(buildResult: 'SUCCESS', stageResult: 'SUCCESS') {
+                            bat '''
+								SET PYTHONPATH=%WORKSPACE%					  
+                                C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\pytest --junitxml=result-unit.xml test\\unit
+                            '''
+                        }
+                    }
+                }
+                stage('Coverage') {
+                    agent { label 'unit-test' }
+					environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11B-Reto2-AgentCoverage"
+                    }
+                    steps {
+						unstash 'project-files'
+						bat '''
+							echo [AgentUnitTest]
+							whoami
+							hostname
+							echo %WORKSPACE%
+                        '''
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'SUCCESS') {
+                            bat '''
+								SET PYTHONPATH=%WORKSPACE%						  
+                                C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\coverage run --branch --source=app --omit=app\\__init__.py,app\\api.py -m pytest test\\unit
+                                C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\coverage xml
+                            '''
+                            cobertura coberturaReportFile: 'coverage.xml',
+                                lineCoverageTargets: '95,85,0',
+                                conditionalCoverageTargets: '90,80,0'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Static Analysis') {
+            parallel {
+                stage('Flake8') {
+                    agent { label 'static-analysis' }
+                    environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11B-Reto2-AgentFlake8"
+                    }
+                    steps {
+						unstash 'project-files'
+						bat '''
+							echo [AgentFlake8]
+							whoami
+							hostname
+							echo %WORKSPACE%
+						'''					
+                        bat '''
+                            C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\flake8 --exit-zero --format=pylint app >flake8.out
+                        '''
+                        recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')],
+                            qualityGates: [
+                                [threshold: 8, type: 'TOTAL', unstable: true],
+                                [threshold: 10, type: 'TOTAL', unstable: false]
+                            ]
+                    }
+                }
+                stage('Bandit') {
+                    agent { label 'static-analysis' }
+                    environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11B-Reto2-AgentBandit"
+                    }
+                    steps {
+						unstash 'project-files'
+						bat '''
+							echo [AgentFlake8]
+							whoami
+							hostname
+							echo %WORKSPACE%
+						'''	
+                        bat '''
+                            C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"
+                        '''
+                        recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')],
+                            qualityGates: [
+                                [threshold: 2, type: 'TOTAL', unstable: true],
+                                [threshold: 4, type: 'TOTAL', unstable: false]
+                            ]
+                    }
+                }
+            }
+        }
+
+        stage('Performance Testing') {
+            agent { label 'performance' }
+            environment {
+                        PYTHONPATH = "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\Tests\\CP11B-Reto2-AgentPerformance"
+                    }
+            steps {
+				unstash 'project-files'
+				bat '''
+					echo [AgentFlake8]
+					whoami
+					hostname
+					echo %WORKSPACE%
+				'''
+                bat '''
+                    C:\\Users\\danie\\AppData\\Local\\Programs\\apache-jmeter-5.6.3\\bin\\jmeter -n -t test\\jmeter\\flask.jmx -f -l flask.jtl
+                '''
+                perfReport sourceDataFiles: 'flask.jtl'
+            }
+        }
+    }
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
