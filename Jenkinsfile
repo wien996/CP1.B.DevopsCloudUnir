@@ -7,6 +7,7 @@ pipeline {
 		{
             steps 
 			{           
+																			
                 git 'https://github.com/wien996/CP1.B.DevopsCloudUnir.git'
             }
         }
@@ -38,8 +39,8 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'SUCCESS') 
 				{
                     cobertura coberturaReportFile: 'coverage.xml', 
-                        lineCoverageTargets: '95,85,0', // Líneas: rojo <85, amarillo 85-95, verde >95
-                        conditionalCoverageTargets: '90,80,0' // Condiciones: rojo <80, amarillo 80-90, verde >90
+                        lineCoverageTargets: '100,100,0', // Líneas: 100% obligatorio
+                        conditionalCoverageTargets: '100,100,0' // Condiciones: 100% obligatorio
                 }
             }
         }
