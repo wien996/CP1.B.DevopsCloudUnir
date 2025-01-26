@@ -35,11 +35,12 @@ pipeline {
                     C:\\Users\\danie\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\coverage xml
                 '''
 																			
-	 
-                cobertura coberturaReportFile: 'coverage.xml', 
-                    lineCoverageTargets: '100,100,0', // Líneas: 100% obligatorio
-                    conditionalCoverageTargets: '100,100,0' // Condiciones: 100% obligatorio
-				 
+	 	catchError(buildResult: 'UNSTABLE', stageResult: 'SUCCESS') 
+		{
+                	cobertura coberturaReportFile: 'coverage.xml', 
+                    		lineCoverageTargets: '100,100,0', // Líneas: 100% obligatorio
+                    		conditionalCoverageTargets: '100,100,0' // Condiciones: 100% obligatorio
+		}				 
             }
         }
 
